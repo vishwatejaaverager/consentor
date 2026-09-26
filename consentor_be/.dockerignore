@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+.env
+enrolled_face_data/
+*.jpg
+*.png
+*.log
+.DS_Store

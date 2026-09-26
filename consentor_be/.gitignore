@@ -26,3 +26,9 @@ htmlcov/
 # Environment variables
 .env
 .env.local
+
+# Local SQLite databases & vector caches
+*.db
+consentor.db
+enrolled_face_data/
+*.npy

@@ -1,0 +1,62 @@
+services:
+  # ============================================================================
+  # Consentor Backend (FastAPI + InsightFace + ONNX Runtime)
+  # ============================================================================
+  backend:
+    build:
+      context: ./consentor_be
+      dockerfile: Dockerfile
+    container_name: consentor_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=Consentor Biometric API
+      - API_V1_STR=/api/v1
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_CONSENTOR_BUCKET=${S3_CONSENTOR_BUCKET:-consentor-biometrics}
+    volumes:
+      # Live sync app and web code from host
+      - ./consentor_be/app:/app/app
+      - ./consentor_be/web:/app/web
+      # Saved images appear directly on host machine in consentor_be/images
+      - ./consentor_be/images:/app/images
+      # Persistent local storage for biometric vector embeddings
+      - biometric_storage:/app/enrolled_face_data
+      # Mount host machine's pre-downloaded InsightFace models so it never downloads again
+      - ~/.insightface:/root/.insightface
+    networks:
+      - consentor_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # ============================================================================
+  # Consentor Frontend (Flutter Web + Nginx Reverse Proxy)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./consentor_fe
+      dockerfile: Dockerfile
+    container_name: consentor_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - consentor_net
+
+networks:
+  consentor_net:
+    driver: bridge
+
+volumes:
+  biometric_storage:
+    driver: local
